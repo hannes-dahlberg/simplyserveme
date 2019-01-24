@@ -1,0 +1,21 @@
+{
+    "defaultSeverity": "error",
+    "extends": "tslint:recommended",
+    "jsRules": {},
+    "rules": {
+        "max-line-length": {
+            "options": [
+                255
+            ]
+        },
+        "no-shadowed-variable": false,
+        "no-console": false,
+    },
+    "rulesDirectory": [],
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "src/**/*.spec.ts"
+    ]
+}

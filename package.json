@@ -1,0 +1,14 @@
+{
+  "name": "simplyserveme",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "author": "Hannes Dahlberg <hannes@dwik.se>",
+  "license": "MIT",
+  "scripts": {
+    "watch": "tsc -w",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^3.2.4"
+  }
+}

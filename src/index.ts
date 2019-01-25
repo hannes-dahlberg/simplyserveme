@@ -8,28 +8,31 @@ import * as fs from "fs";
 // Creating app
 const rootApp: express.Express = express();
 
+const rootApp2: express.Express = express();
+rootApp2.use((request: express.Request, result: express.Response) => {
+  result.send('Hello there !');
+});
+
+
 // Listening on port 80
 rootApp.listen(80, () => {
   console.log("Listening on port 80");
   loadConfigs(rootApp);
 });
 
-let certFiles: { [key: string]: { key: string, cert: string } } = {};
+type security = { key: string, cert: string, ca: string, };
+let certFiles: { [key: string]: security } = {};
 
 var httpsServer = https.createServer({
-  SNICallback: (domain: string, callback) => {
+  key: "", cert: "", ca: "",
+  SNICallback: (domain: string, callback: (error: Error | null, ctx: tls.SecureContext) => void) => {
     if (certFiles[domain] !== undefined) {
       callback(null, tls.createSecureContext(certFiles[domain]));
     } else {
-      callback(null, tls.createSecureContext({
-        cert: "",
-        key: ""
-      }));
+      callback(null, tls.createSecureContext({ cert: "", key: "", ca: "", }));
     }
   },
-  key: "",
-  cert: "",
-}, this.app).listen(443, () => {
+}, rootApp).listen(443, () => {
   console.log("listening on port 433");
 });
 
@@ -42,10 +45,8 @@ fs.watch("./configs", (event: string, filename: string) => {
 interface Iconfig {
   domain: string; // Doman
   target: string; // Target address (none https),
-  security?: {
-    key: string,
-    cert: string
-  }
+  security?: security,
+  redirectToHttps?: boolean
 }
 
 const loadConfigs = (app: express.Express): void => {
@@ -76,7 +77,7 @@ const loadConfigs = (app: express.Express): void => {
     })
   } catch (error) {
     configs = undefined;
-    console.log("missing either domain, target, key or cert in config");
+    console.log("missing either domain or target in config");
   }
 
   if (configs === undefined) {
@@ -94,13 +95,25 @@ const loadConfigs = (app: express.Express): void => {
   // Add each config as a vhost app to app server
   try {
     configs.forEach((config: Iconfig) => {
-      app.use(vhost(config.domain, express().use("/", httpProxyMiddleware({ target: config.target, changeOrigin: true }))));
+      let vhostApp = express();
+
       if (config.security !== undefined) {
         certFiles[config.domain] = {
           key: fs.readFileSync(config.security.key, "utf8"),
           cert: fs.readFileSync(config.security.cert, "utf8"),
+          ca: fs.readFileSync(config.security.ca, "utf8"),
+        }
+
+        if (config.redirectToHttps) {
+          vhostApp.get('*', (request: express.Request, response: express.Response, next: express.NextFunction) => {
+            if (request.protocol === "http") { response.redirect(`https://${request.headers.host}${request.url}`); return; }
+            next();
+          });
         }
       }
+
+      vhostApp.use("/", httpProxyMiddleware({ target: config.target, changeOrigin: true }));
+      app.use(vhost(config.domain, vhostApp));
     });
   } catch (error) {
     console.log("Loading configs to webserver somehow failed", error);

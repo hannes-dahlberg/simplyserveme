@@ -4,6 +4,9 @@
   "main": "build/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",
+  "bin": {
+    "ssme": "bin/ssme"
+  },
   "scripts": {
     "watch": "tsc -w",
     "build": "tsc"

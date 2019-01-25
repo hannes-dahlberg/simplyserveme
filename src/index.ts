@@ -4,40 +4,56 @@ import * as vhost from "vhost";
 import * as https from "https";
 import * as tls from "tls";
 import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as childProcess from "child_process";
+
+if (os.userInfo().username !== "root") {
+  throw new Error("Server can only be run as root");
+}
+
+//Config folder
+const configPath: string = path.resolve(os.homedir(), ".ssme");
+
+//Make sure config folder exists
+if (!fs.existsSync(configPath)) {
+  //Create directory
+  fs.mkdirSync(configPath);
+
+  //Get user home dir stats
+  const homedirStats = fs.statSync(os.homedir());
+
+  //Set config path ownership to homedir user ()
+  fs.chownSync(configPath, homedirStats.uid, homedirStats.gid);
+}
 
 // Creating app
 const rootApp: express.Express = express();
 
-const rootApp2: express.Express = express();
-rootApp2.use((request: express.Request, result: express.Response) => {
-  result.send('Hello there !');
-});
-
-
 // Listening on port 80
 rootApp.listen(80, () => {
   console.log("Listening on port 80");
-  loadConfigs(rootApp);
+  https.createServer({
+    key: "", cert: "", ca: "",
+    SNICallback: (domain: string, callback: (error: Error | null, ctx: tls.SecureContext) => void) => {
+      if (certFiles[domain] !== undefined) {
+        callback(null, tls.createSecureContext(certFiles[domain]));
+      } else {
+        callback(null, tls.createSecureContext({ cert: "", key: "", ca: "", }));
+      }
+    },
+  }, rootApp).listen(443, () => {
+    console.log("listening on port 433");
+    loadConfigs(rootApp);
+  });
+
 });
 
 type security = { key: string, cert: string, ca: string, };
 let certFiles: { [key: string]: security } = {};
 
-var httpsServer = https.createServer({
-  key: "", cert: "", ca: "",
-  SNICallback: (domain: string, callback: (error: Error | null, ctx: tls.SecureContext) => void) => {
-    if (certFiles[domain] !== undefined) {
-      callback(null, tls.createSecureContext(certFiles[domain]));
-    } else {
-      callback(null, tls.createSecureContext({ cert: "", key: "", ca: "", }));
-    }
-  },
-}, rootApp).listen(443, () => {
-  console.log("listening on port 433");
-});
-
 // Setup watcher for configs
-fs.watch("./configs", (event: string, filename: string) => {
+fs.watch(configPath, (event: string, filename: string) => {
   console.log("Configs were edited, reload configs");
   loadConfigs(rootApp);
 });
@@ -52,11 +68,11 @@ interface Iconfig {
 const loadConfigs = (app: express.Express): void => {
 
   // Container for configs
-  let configs: Iconfig[];
+  let configs: Iconfig[] = [];
 
   // Try reading config folder
   try {
-    configs = fs.readdirSync("./configs")
+    configs = fs.readdirSync(configPath)
       .filter((config: string) => config.match(/.+\.json$/))
       .map((config: string) => ({
         // Parse each config file and add filename
@@ -76,11 +92,12 @@ const loadConfigs = (app: express.Express): void => {
       }
     })
   } catch (error) {
-    configs = undefined;
+    configs = [];
     console.log("missing either domain or target in config");
   }
 
-  if (configs === undefined) {
+  if (configs.length === 0) {
+    console.log("No configs were loaded");
     return;
   }
   // clean up old vhost apps

@@ -76,7 +76,7 @@ const loadConfigs = (app: express.Express): void => {
       .filter((config: string) => config.match(/.+\.json$/))
       .map((config: string) => ({
         // Parse each config file and add filename
-        ...JSON.parse(fs.readFileSync(`./configs/${config}`, "utf8")),
+        ...JSON.parse(fs.readFileSync(path.resolve(configPath, config), "utf8")),
         filename: config
       }));
   } catch (error) {

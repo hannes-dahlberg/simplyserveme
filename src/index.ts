@@ -6,14 +6,55 @@ import * as tls from "tls";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import * as childProcess from "child_process";
+import * as commandLineArgs from "command-line-args";
+
+interface Iconfig {
+  domain: string; // Doman
+  target: string; // Target address (none https),
+  security?: security,
+  redirectToHttps?: boolean,
+  letsEncryptAuth?: {
+    validation: string,
+    token: string
+  }
+}
+type security = { key: string, cert: string, ca: string, };
+
+//Config folder
+const configPath: string = path.resolve(os.homedir(), ".ssme");
+
+const optionDefinitions = [
+  { name: "auth", alias: "v", type: Boolean },
+  { name: "cleanup", alias: "c", type: Boolean }
+]
+const options = commandLineArgs(optionDefinitions);
+
+if (options.auth || options.cleanup) {
+  const configFilePath = path.resolve(configPath, `${process.env.CERTBOT_DOMAIN}.json`);
+
+  let domainConfig: Iconfig;
+  domainConfig = JSON.parse(fs.readFileSync(configFilePath, "utf8"));
+
+  if (options.auth) {
+    domainConfig.letsEncryptAuth = {
+      token: process.env.CERTBOT_TOKEN,
+      validation: process.env.CERTBOT_VALIDATION,
+    }
+  }
+
+  if (options.cleanup) {
+    domainConfig.letsEncryptAuth = undefined;
+  }
+
+  fs.writeFileSync(configFilePath, JSON.stringify(domainConfig), "utf8");
+
+  //Since configs were to be rewritten end script here
+  process.exit();
+}
 
 if (os.userInfo().username !== "root") {
   throw new Error("Server can only be run as root");
 }
-
-//Config folder
-const configPath: string = path.resolve(os.homedir(), ".ssme");
 
 //Make sure config folder exists
 if (!fs.existsSync(configPath)) {
@@ -49,7 +90,6 @@ rootApp.listen(80, () => {
 
 });
 
-type security = { key: string, cert: string, ca: string, };
 let certFiles: { [key: string]: security } = {};
 
 // Setup watcher for configs
@@ -57,13 +97,6 @@ fs.watch(configPath, (event: string, filename: string) => {
   console.log("Configs were edited, reload configs");
   loadConfigs(rootApp);
 });
-
-interface Iconfig {
-  domain: string; // Doman
-  target: string; // Target address (none https),
-  security?: security,
-  redirectToHttps?: boolean
-}
 
 const loadConfigs = (app: express.Express): void => {
 
@@ -113,6 +146,13 @@ const loadConfigs = (app: express.Express): void => {
   try {
     configs.forEach((config: Iconfig) => {
       let vhostApp = express();
+
+      if (config.letsEncryptAuth) {
+        // Adds route for lets encrypt validation
+        vhostApp.get(`/.well-known/acme-challenge/${config.letsEncryptAuth.token}`, (request: express.Request, response: express.Response, next: express.NextFunction) => {
+          response.send(config.letsEncryptAuth.validation);
+        });
+      }
 
       if (config.security !== undefined) {
         certFiles[config.domain] = {

@@ -1100,6 +1100,6 @@ vary@~1.1.2:
   resolved "https://registry.yarnpkg.com/vary/-/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"
   integrity sha1-IpnwLG3tMNSllhsLn3RSShj2NPw=
 
-vhost@expressjs/vhost#27/head:
+vhost@expressjs/vhost#pull/27/head:
   version "3.0.2"
   resolved "https://codeload.github.com/expressjs/vhost/tar.gz/6de1130a5c3ea185c84610692e9ba12975ed99a6"

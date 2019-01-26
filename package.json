@@ -17,6 +17,6 @@
     "express": "^4.16.4",
     "http-proxy-middleware": "^0.19.1",
     "typescript": "^3.2.4",
-    "vhost": "expressjs/vhost#27/head"
+    "vhost": "expressjs/vhost#pull/27/head"
   }
 }

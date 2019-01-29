@@ -27,10 +27,27 @@ const configPath: string = path.resolve(os.homedir(), ".ssme");
 const letsEncryptPath: string = "/etc/letsencrypt/live/";
 
 const optionDefinitions = [
+  { name: "create", type: Boolean },
+  { name: "domain", type: String },
+  { name: "target", type: String },
   { name: "auth", alias: "v", type: Boolean },
   { name: "cleanup", alias: "c", type: Boolean }
 ]
 const options = commandLineArgs(optionDefinitions);
+
+if (options.create && options.domain && options.target) {
+  const configFilePath = path.resolve(configPath, `${options.domain}.json`);
+
+  const config: Iconfig = {
+    domain: options.domain,
+    target: options.target
+  };
+
+  fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4), "utf8");
+
+  //Since configs were to be created end script here
+  process.exit();
+}
 
 if (options.auth || options.cleanup) {
   const configFilePath = path.resolve(configPath, `${process.env.CERTBOT_DOMAIN}.json`);

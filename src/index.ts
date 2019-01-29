@@ -23,6 +23,9 @@ type security = { key: string, cert: string, ca: string, };
 //Config folder
 const configPath: string = path.resolve(os.homedir(), ".ssme");
 
+//Lets encrypt path
+const letsEncryptPath: string = "/etc/letsencrypt/live/";
+
 const optionDefinitions = [
   { name: "auth", alias: "v", type: Boolean },
   { name: "cleanup", alias: "c", type: Boolean }
@@ -43,10 +46,23 @@ if (options.auth || options.cleanup) {
   }
 
   if (options.cleanup) {
+    // Removes auth
     domainConfig.letsEncryptAuth = undefined;
+
+    // Adds certificate
+    domainConfig.security = {
+      cert: `/etc/letsencrypt/live/${process.env.CERTBOT_DOMAIN}/cert.pem`,
+      key: `/etc/letsencrypt/live/${process.env.CERTBOT_DOMAIN}/privkey.pem`,
+      ca: `/etc/letsencrypt/live/${process.env.CERTBOT_DOMAIN}/chain.pem`
+    }
+
+    // Sets to auto redirect to https
+    domainConfig.redirectToHttps = true;
+
   }
 
-  fs.writeFileSync(configFilePath, JSON.stringify(domainConfig), "utf8");
+  // Write config file
+  fs.writeFileSync(configFilePath, JSON.stringify(domainConfig, null, 4), "utf8");
 
   //Since configs were to be rewritten end script here
   process.exit();

@@ -202,7 +202,21 @@ const loadConfigs = (app: express.Express): void => {
         }
       }
 
-      vhostApp.use("/", httpProxyMiddleware({ target: config.target, changeOrigin: true }));
+      // If target is web url
+      if (!!config.target.match(/^http/)) {
+        // Sets up proxy
+        vhostApp.use("/", httpProxyMiddleware({ target: config.target, changeOrigin: true }));
+      } else {
+        // Sets up static path
+        const staticPath = path.resolve(config.target);
+        vhostApp.use(express.static(staticPath));
+        vhostApp.get("*", (request: express.Request, response: express.Response) => {
+          response.sendFile("index.html", { root: staticPath });
+        });
+
+        console.log(`Serving static content for ${config.domain} from path: ${staticPath}`);
+      }
+
       app.use(vhost(config.domain, vhostApp));
     });
   } catch (error) {

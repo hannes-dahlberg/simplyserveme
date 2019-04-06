@@ -1,6 +1,6 @@
 {
   "name": "simplyserveme",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "main": "build/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",
@@ -15,12 +15,15 @@
   },
   "dependencies": {
     "@types/command-line-args": "^5.0.0",
+    "@types/dotenv": "^6.1.1",
     "@types/express": "^4.16.1",
     "@types/http-proxy-middleware": "^0.19.2",
     "command-line-args": "^5.0.2",
+    "dotenv": "^7.0.0",
     "express": "^4.16.4",
     "http-proxy-middleware": "^0.19.1",
     "typescript": "^3.2.4",
-    "vhost": "expressjs/vhost#pull/27/head"
+    "vhost": "expressjs/vhost#pull/27/head",
+    "x509": "^0.3.4"
   }
 }

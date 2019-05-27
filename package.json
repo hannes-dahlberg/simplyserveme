@@ -1,6 +1,6 @@
 {
   "name": "simplyserveme",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "main": "build/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",
@@ -14,17 +14,6 @@
     "postinstall": "yarn build"
   },
   "dependencies": {
-    "console.table": "^0.10.0",
-    "cors": "^2.8.5",
-    "dotenv": "^7.0.0",
-    "express": "^4.16.4",
-    "http-proxy-middleware": "^0.19.1",
-    "vhost": "expressjs/vhost#pull/27/head",
-    "winston": "^3.2.1",
-    "x509": "^0.3.4",
-    "yargs": "^13.2.4"
-  },
-  "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/cors": "^2.8.5",
     "@types/dotenv": "^6.1.1",
@@ -32,9 +21,20 @@
     "@types/http-proxy-middleware": "^0.19.2",
     "@types/mocha": "^5.2.6",
     "@types/yargs": "^13.0.0",
+    "console.table": "^0.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^7.0.0",
+    "express": "^4.16.4",
+    "http-proxy-middleware": "^0.19.1",
+    "typescript": "^3.4.5",
+    "vhost": "expressjs/vhost#pull/27/head",
+    "winston": "^3.2.1",
+    "x509": "^0.3.4",
+    "yargs": "^13.2.4"
+  },
+  "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^6.1.4",
-    "ts-node": "^8.1.0",
-    "typescript": "^3.4.5"
+    "ts-node": "^8.1.0"
   }
 }

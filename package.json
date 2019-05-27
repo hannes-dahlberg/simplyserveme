@@ -14,6 +14,7 @@
     "postinstall": "yarn build"
   },
   "dependencies": {
+    "@fidm/x509": "^1.2.1",
     "@types/chai": "^4.1.7",
     "@types/cors": "^2.8.5",
     "@types/dotenv": "^6.1.1",
@@ -32,7 +33,6 @@
     "typescript": "^3.4.5",
     "vhost": "expressjs/vhost#pull/27/head",
     "winston": "^3.2.1",
-    "x509": "^0.3.4",
     "yargs": "^13.2.4"
   }
 }

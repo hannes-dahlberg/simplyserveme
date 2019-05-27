@@ -6,7 +6,7 @@ import { LogModule } from "./modules/log.module";
 import { server, IHost } from "./services/server.service";
 import { helperService } from "./services/helper.service";
 const cTable = require('console.table');
-const x509 = require("x509");
+const { Certificate } = require("@fidm/x509");
 
 const log = new LogModule();
 
@@ -52,8 +52,8 @@ yargs.command<{}>("start", "Start server", () => {
         HTTPS: !!data.security,
         "Redirect HTTPS": data.security ? !!data.redirectToHttps : "-",
         "Cert Expires": data.security ? (() => {
-          const certData = x509.parseCert(data.security.cert);
-          return helperService.dateTimeToString(certData.notAfter as Date);
+          const certData = Certificate.fromPEM(fs.readFileSync(data.security.cert));
+          return helperService.dateTimeToString(certData.validTo as Date);
         })() : "-"
       }
     }));

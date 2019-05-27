@@ -50,7 +50,7 @@ class ServerService extends ServiceModule {
   }
 
   public constructor(
-    private app = express(),
+    private app: express.Express = express(),
   ) {
     super();
 

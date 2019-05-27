@@ -1,79 +1,93 @@
-import * as fs from "fs";
-import * as path from "path";
-import { EnvService, envService as envServiceReference } from "../services/env.service";
+import * as winston from "winston";
+import { TransformableInfo } from "logform";
 import { helperService } from "../services/helper.service";
 
 export interface ILogMessage { title: string; message?: string; type?: logType; data?: any; }
+export interface ILogArgument { title: string; message?: string; };
 export enum logType {
   INFO = "info",
-  WARNING = "warning",
+  WARNING = "warn",
   ERROR = "error",
 }
 
 export class LogModule {
-  private outputToConsole: boolean = true;
-  private dumpPath: string = "./log";
+  private logger: winston.Logger;
+  public constructor(outputToConsole: boolean = true, path?: string) {
+    const format = [
+      winston.format.timestamp(),
+      winston.format.printf((info: TransformableInfo) => `${helperService.dateTimeToString(info.timestamp)} - ${info.level}: ${info.message}`)
+    ];
+    this.logger = winston.createLogger({
+      transports: [
+        ...(path !== undefined ? (() => {
+          const matches = path.match(/^(.*\/)(.*)$/);
 
-  public constructor(path?: string);
-  public constructor(
-    private path?: string,
-    private envService: EnvService = envServiceReference,
-  ) {
-    this.outputToConsole = this.envService.get("LOG_OUTPUT_CONSOLE") === "true";
-    this.dumpPath = this.envService.get("LOG_DUMP_PATH", this.dumpPath);
+          return [new winston.transports.File({
+            dirname: matches[1],
+            filename: `${matches[2]}`,
+            format: winston.format.combine(...format),
+          })];
+        })() : []),
+        ...(outputToConsole ? [new winston.transports.Console({
+          format: winston.format.combine(...[
+            winston.format.colorize(),
+            ...format,
+          ])
+        })] : []),
+      ]
+    });
+  }
+
+  public info(message: string): void
+  public info(log: ILogArgument): void
+  public info(log: ILogArgument | string): void {
+    this.add({ ...this.parseLogArgument(log), ...{ type: logType.INFO } });
+  }
+
+  public warning(message: string): void
+  public warning(log: ILogArgument): void
+  public warning(log: ILogArgument | string): void {
+    this.add({ ...this.parseLogArgument(log), ...{ type: logType.WARNING } });
+  }
+
+  public error(message: string): void
+  public error(log: ILogArgument): void
+  public error(log: ILogArgument | string): void {
+    this.add({ ...this.parseLogArgument(log), ...{ type: logType.ERROR } });
+  }
+
+  private parseLogArgument(info: ILogArgument | string): ILogArgument {
+    if (typeof info === "string") {
+      info = { title: info };
+    }
+
+    return info;
   }
 
   /**
    * Public method to add log message. Will output to console if set to do so
-   * @param logMessage Log message
+   * @param log Log message
    */
-  public add(logMessage: string): void
-  public add(logMessage: ILogMessage): void
-  public add(logMessage: ILogMessage | string): void {
-    if (typeof logMessage === "string") {
-      logMessage = { title: logMessage };
+  public add(log: string): void
+  public add(log: ILogMessage): void
+  public add(log: ILogMessage | string): void {
+    if (typeof log === "string") {
+      log = { title: log };
     }
-    if (logMessage.type === undefined) { logMessage.type = logType.INFO; }
-    this.addToLogMessages(logMessage);
-
-    if (this.outputToConsole) {
-      switch (logMessage.type) {
-        case logType.INFO:
-          console.log(
-            ...[
-              "\x1b[34m%s\x1b[0m",
-              this.printLogMessage(logMessage),
-              ...(logMessage.data !== undefined ? [logMessage.data] : [])
-            ]);
-          break;
-        case logType.WARNING:
-          console.warn(
-            ...[
-              "\x1b[33m%s\x1b[0m",
-              this.printLogMessage(logMessage),
-              ...(logMessage.data !== undefined ? [logMessage.data] : [])
-            ]);
-          break;
-        case logType.ERROR:
-          console.error(
-            ...[
-              "\x1b[31m%s\x1b[0m",
-              this.printLogMessage(logMessage),
-              ...(logMessage.data !== undefined ? [logMessage.data] : [])
-            ]);
-          break;
-      }
-    }
+    if (log.type === undefined) { log.type = logType.INFO; }
+    this.logger.log({
+      level: log.type,
+      message: this.printLogMessage(log)
+    });
   }
 
-  /**
-   * Adding log message to log array and dump if array is to long
-   * @param logMessage Log message
-   */
-  private addToLogMessages(logMessage: ILogMessage): void {
-    fs.writeFileSync(path.resolve(this.dumpPath, `${this.path}.log`),
-      `${helperService.dateTimeToString(new Date())} ${logMessage.type !== undefined ? logMessage.type.toUpperCase() : logType.INFO.toUpperCase()} - ${this.printLogMessage(logMessage)}${logMessage.data !== undefined ? ` - DATA: ${JSON.stringify(logMessage.data)}` : ""}\n`,
-      { flag: "a" });
+  public end(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.logger.on("close", () => {
+        resolve();
+      });
+      this.logger.end();
+    });
   }
 
   private printLogMessage(logMessage: ILogMessage): string {

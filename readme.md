@@ -3,20 +3,69 @@ Struggling with hosting node servers under Apache2 and never got around NginX I 
 
 Since I started to get alot of node web applications running on the same machine and all of them under different port I wanted to proxy them all under port 80 and thats how I came up with SSME.
 
-## Configs
-Each website hosted should be represented under ~/.ssme/site.domain.com.json but ofcourse named after your own domain.
+Suggested is to install SSME globally:
+`> npm install simplyserveme g`
 
-Example of config file:
+Start the application with `> ssme start`
+
+## Config
+SSME utilize configs, looking for ssme.config.json at the same directory as the application is started. However if no file is found it will fallback to default values. The config can also be created using command `> ssme init`. 
+
+### Attributes
+- **Port** (integer) - *Port to run HTTP server*
+- **sslPort** (integer) - *Port to run HTTPS Server*
+- **logOutputConsole** (boolean) - *Should SSME output log in console?*
+- **logDumpPath** (string) - *Path to put log file*
+- **hostsPath** (string) - *Path to host config folder*
+
+This is the default config:
+```
+{
+    "port": 80,
+    "sslPort": 443,
+    "logOutputConsole": false,
+    "logDumpPath": "~/.ssme/log",
+    "hostsPath": "~/.ssme/hosts"
+}
+```
+
+## Hosts
+Each website domain is represented as a file in the config "hostPath" folder. Name each host file %DOMAIN%.json
+
+### Attributes
+- **domain** (string) - *What domain to run host at*
+- **target** (string) - *URL or path to proxy from*
+- **enable** (boolean) - *Should the host currently be available (true) or not (false)?*
+- **security** (optional)
+  - **key** (string) - *Path to key file*
+  - **cert** (string) - *Path to cert file*
+  - **ca** (string) - *Path to ca file*
+- **redirectToHttps** (boolean) - *If "security" is specified should all http request be redirected to http (true) or not (false)?*
+- **letsEncryptAuth** (optional) - *Validation configs when letsEncrypt needs to authenticate host*
+  - **validation** (string)
+  - **token** (string)
+- **blackListIps** (string Array) (optional) - *List of IP-addresses that should be denied access (CIDR allowed)*
+- **whiteListIps** (string Array) (optional) - *List of IP-addresses that should be allowed access  (CIDR allowed)*
+
+If "blackListIps" is present all IP:s will be allowed access except the ones in the list.
+
+If "whiteListIps is present ONLY IP:s in the list will be allowed access.
+
+If both "blackListIps" and "whiteListIps" is present ONLY IP:s in the "whiteListIps" list will be allowed access EXCEPT if it also is present in the "blackListIps" list. 
+
+Example of host file:
 ```
 {
   "domain": "site.app.com",
-  "target": "http://site.app.com:1234"
+  "target": "http://site.app.com:1234",
+  "enable": true,
+  "whiteListIps": ["127.0.0.1"]
 }
 ```
-The target can also be an absolut path to a static folder for simply serving static content.
+Setting the "target" to a system path will work as serving static content.
 
 ## LetsEncrypt
-SSME also support SSL using letsEncrypt. Just create a certificate using certbot manual creating tool and edit your config to:
+SSME Support SSL using letsEncrypt. Example of host using LetsEncrypt certificate would look like this:
 ```
 {
   "domain": "site.domain.com",
@@ -29,39 +78,57 @@ SSME also support SSL using letsEncrypt. Just create a certificate using certbot
   "redirectToHttps": true
 }
 ```
-`RedirectToHttps` when `true` will redirect any none https request.
+LetsEncrypt with certbot require validation of host when creating a certificate. This is what the attribute "letsEncryptAuth" comes in use.
 
-You can also use certbots manual hooks to auth and cleanup a SSME host config directly. Example:
+To make everyting less complicated SSME supports commands to set validation and cert paths with the certboot hooks. To create a certificate for a specific host with certbot (with validation and certificate configs) simply run:
 ```
-ertbot certonly --manual -d %DOMAIN% --manual-auth-hook "ssme --auth" --manual-cleanup-hook "ssme --cleanup"
+> certbot certonly --manual -d %DOMAIN% --manual-auth-hook "ssme auth" --manual-cleanup-hook "ssme cleanup"
 ```
+the hook `> ssme auth` will rewrite host file (from env vars) with validation and `> ssme cleanup` will remove validation and add "security" data to host config file (using env vars).
 
 ## Hot Reloading
-Adding, deleting and editing configs will reload the server automatically so my tip is to run SSME under forever or any other daemon type service.
+Adding, deleting and editing config and/or hosts will reload the server automatically. No need to restart the application.
 
-## Run as root
-Also SSME requires root access to run since its using port 80 and 443,
-
-Suggestion is to install SSME globally under your own login and then run it with SUDO (will utilize the same config folder).
+## Run on port 80/443
+If you wanna run SSME on a port less than 1024 and avoid running under root we recommend using [authbind](http://manpages.ubuntu.com/manpages/bionic/man1/authbind.1.html).
 
 ## CLI
-The application comes with a simple CLI as well. These are the following commands:
+The application comes with a simple CLI. Commands available are:
 
-### Create
+### Start
 ```
-ssme --create --domain %DOMAIN% --target %TARGET%
+> ssme start
 ```
-This will create a new host config with specified domain and target. 
+Start application web server
+
+### Init
+```
+> ssme init
+```
+Create init config file in active folder
 
 ### List
 ```
-ssme --list
+> ssme list
 ```
-Will ist all configs
+List all configs
+
+### Create
+```
+> ssme create <domain> <target>
+```
+Create a new host config with specified domain and target. 
 
 ### Enable/Disable
 ```
-ssme --enable --domain %DOMAIN%
-ssme --disable --domain %DOMAIN%
+> ssme enable <domain>
+> ssme disable <domain>
 ```
-Will enable/disable to domain to be hosted
+Will enable/disable domain to be hosted
+
+### LetsEncrypt
+```
+> ssme auth
+> ssme cleanup
+```
+To be used with certbot to create authentication for host config and set certificate. [Read more about it here](https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks).

@@ -66,7 +66,8 @@ yargs.command<{}>("start", "Start server", () => {
   const host: IHost = {
     domain: (argv.domain as string),
     target: argv.target,
-    enable: true
+    enable: true,
+    whiteListIps: ["127.0.0.1"]
   };
 
   const hostFilePath = path.resolve(configService.attributes.hostsPath, `${argv.domain}.json`);

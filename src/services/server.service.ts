@@ -1,12 +1,12 @@
 import * as express from "express";
 import * as httpProxyMiddleware from "http-proxy-middleware";
 import * as vhost from "vhost";
-import * as http from "http";
 import * as https from "https";
 import * as net from "net";
 import * as tls from "tls";
 import * as fs from "fs";
 import * as path from "path";
+const ipRangeCheck = require("ip-range-check");
 
 import { configService, IConfig } from "./config.service";
 import { LogModule, logType } from "../modules/log.module";
@@ -17,12 +17,14 @@ export interface IHost {
   domain: string; // Domain
   target: string; // Target address (none https),
   enable: boolean;
-  security?: security,
-  redirectToHttps?: boolean,
+  security?: security;
+  redirectToHttps?: boolean;
   letsEncryptAuth?: {
     validation: string,
     token: string
-  }
+  };
+  blackListIps?: string[];
+  whiteListIps?: string[];
 }
 type security = { key: string, cert: string, ca: string, };
 type certFiles = { [key: string]: security };
@@ -288,6 +290,17 @@ class ServerService extends ServiceModule {
               next();
             });
           }
+        }
+
+        // Add IP filter if white/black list exists
+        if (host.whiteListIps !== undefined || host.blackListIps !== undefined) {
+          vhostApp.all("*", (request: express.Request, response: express.Response, next: express.NextFunction) => {
+            if ((host.whiteListIps !== undefined && !ipRangeCheck(request.ip, host.whiteListIps)) || host.blackListIps !== undefined && ipRangeCheck(request.ip, host.blackListIps)) {
+              response.sendStatus(403);
+              return;
+            }
+            next();
+          });
         }
 
         // If target is web url

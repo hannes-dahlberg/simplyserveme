@@ -132,3 +132,21 @@ Will enable/disable domain to be hosted
 > ssme cleanup
 ```
 To be used with certbot to create authentication for host config and set certificate. [Read more about it here](https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks).
+
+## Server module
+As a final touch this package include a server module for quickly setting up a web server in nodejs. The server module is able to run multiple web apps were each app is either an API or a SPA.
+
+A server is created like this:
+```
+import { Router } from "express";
+import { Server } from "simplyserveme";
+
+const apps = [
+  //API app
+  { domain: "api.app.com", routes: Router(), },
+  { domain: "spa.app.com", staticPath: "/path/to/static/root" }
+];
+
+new Server(apps, port, securePort);
+```
+More configs like cors and credentials and other stuff can be found in the ts definition file.

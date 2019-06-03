@@ -8,6 +8,10 @@ import { helperService } from "./services/helper.service";
 const cTable = require('console.table');
 const { Certificate } = require("@fidm/x509");
 
+export * from "./modules/log.module";
+export * from "./modules/server.module";
+export * from "./modules/service.module";
+
 const log = new LogModule();
 
 const enableDisable = (verb: "enable" | "disable", domain: string) => {

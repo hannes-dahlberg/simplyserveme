@@ -1,6 +1,6 @@
 {
   "name": "simplyserveme",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "main": "build/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",

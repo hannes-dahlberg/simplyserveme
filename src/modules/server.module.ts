@@ -10,9 +10,9 @@ import * as tls from "tls";
 import * as vhost from "vhost";
 
 export type corsConfigType = string | string[] | CorsOptions | CorsOptionsDelegate;
-export type credentials = {
-    cert: string,
-    key: string
+export interface ICredentials {
+    cert: string;
+    key: string;
 }
 
 // Config interface
@@ -20,7 +20,7 @@ export interface IApp {
     domain: string;
     https?: boolean;
     httpsRedirect?: boolean;
-    credentials?: credentials;
+    credentials?: ICredentials;
 }
 export interface IAPIApp extends IApp {
     routes?: express.Router;
@@ -37,8 +37,8 @@ export type appType = "api" | "spa";
 
 export interface IConfig {
     port: number;
-    securePort?: number,
-    apps: app[]
+    securePort?: number;
+    apps: app[];
 }
 
 export class Server {
@@ -68,11 +68,11 @@ export class Server {
                 resolve(listener);
             });
 
-            //If any app is set to use https start https server
+            // If any app is set to use https start https server
             if (this.apps.find((app: app) => app.https)) {
                 const server = https.createServer({
                     SNICallback: (domain: string, callback) => {
-                        let config = this.apps.find((app: IApp) => app.domain === domain && app.https && app.credentials !== undefined);
+                        const config = this.apps.find((app: IApp) => app.domain === domain && app.https && app.credentials !== undefined);
                         if (config !== undefined) {
                             callback(null, tls.createSecureContext({
                                 cert: config.credentials.cert,
@@ -81,13 +81,13 @@ export class Server {
                         } else {
                             callback(null, tls.createSecureContext({
                                 cert: "",
-                                key: ""
+                                key: "",
                             }));
                         }
                     },
                     key: "",
                     cert: "",
-                }, this.server)
+                }, this.server);
                 if (this.securePort !== undefined) {
                     server.listen(this.securePort, () => {
                         this.apps.filter((app: app) => app.https && app.credentials !== undefined).forEach((app: app) => {
@@ -109,7 +109,7 @@ export class Server {
 
         // Adds route to redirect to https if protocol is http
         if (appData.https && appData.httpsRedirect) {
-            app.get('*', (request: Request, response: Response, next: NextFunction) => {
+            app.get("*", (request: Request, response: Response, next: NextFunction) => {
                 if (request.protocol === "http") { response.redirect(`https://${request.headers.host.replace(`:${this.port}`, `:${this.securePort}`)}${request.url}`); return; }
                 next();
             });
@@ -120,7 +120,6 @@ export class Server {
             if (tempAppData.corsConfig) {
 
                 if (typeof tempAppData.corsConfig === "string" || tempAppData.corsConfig instanceof Array) {
-                    tempAppData.corsConfig
                     tempAppData.corsConfig = {
                         origin: tempAppData.corsConfig,
                     };
@@ -145,7 +144,7 @@ export class Server {
 
             // Add route for getting API base url
             if (tempAppData.apiBaseUrl !== undefined) {
-                app.head('/api_base_url', (request: Request, response: Response, next: NextFunction) => {
+                app.head("/api_base_url", (request: Request, response: Response, next: NextFunction) => {
                     response.setHeader("api_base_url", tempAppData.apiBaseUrl);
                     next();
                 });

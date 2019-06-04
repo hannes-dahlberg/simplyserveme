@@ -1,12 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
-import { configService, defaultConfig } from "./services/config.service";
 import { LogModule } from "./modules/log.module";
-import { server, IHost } from "./services/server.service";
+import { configService, defaultConfig } from "./services/config.service";
 import { helperService } from "./services/helper.service";
-const cTable = require('console.table');
-const { Certificate } = require("@fidm/x509");
+import { IHost, server } from "./services/server.service";
+
+const cTable = require("console.table"); // tslint:disable-line:no-var-requires
+const { Certificate } = require("@fidm/x509"); // tslint:disable-line:no-var-requires
 
 const log = new LogModule();
 
@@ -22,9 +23,9 @@ const enableDisable = (verb: "enable" | "disable", domain: string) => {
   fs.writeFileSync(hostFilePath, JSON.stringify(host, null, 4), "utf8");
 
   log.add(`Host "${host.domain}" was ${verb === "enable" ? "enabled" : "disabled"}`);
-}
+};
 
-yargs.command<{}>("start", "Start server", () => {
+const _ = yargs.command<{}>("start", "Start server", () => {
   server.start();
 }).command<{}>("init", "Initiate config file", () => {
   const configPath = path.resolve("./", "ssme.config.json");
@@ -46,16 +47,16 @@ yargs.command<{}>("start", "Start server", () => {
     .map((file: string) => {
       const data = JSON.parse(fs.readFileSync(path.resolve(hostsPath, file), "utf8"));
       return {
-        Domain: data.domain,
-        Target: data.target,
-        Enable: data.enable,
-        HTTPS: !!data.security,
+        "Domain": data.domain,
+        "Target": data.target,
+        "Enable": data.enable,
+        "HTTPS": !!data.security,
         "Redirect HTTPS": data.security ? !!data.redirectToHttps : "-",
         "Cert Expires": data.security ? (() => {
           const certData = Certificate.fromPEM(fs.readFileSync(data.security.cert));
           return helperService.dateTimeToString(certData.validTo as Date);
-        })() : "-"
-      }
+        })() : "-",
+      };
     }));
   // End Process
   process.exit();
@@ -67,7 +68,7 @@ yargs.command<{}>("start", "Start server", () => {
     domain: (argv.domain as string),
     target: argv.target,
     enable: true,
-    whiteListIps: ["127.0.0.1"]
+    whiteListIps: ["127.0.0.1"],
   };
 
   const hostFilePath = path.resolve(configService.attributes.hostsPath, `${argv.domain}.json`);
@@ -103,7 +104,7 @@ yargs.command<{}>("start", "Start server", () => {
   host.letsEncryptAuth = {
     token: argv.token,
     validation: argv.validation,
-  }
+  };
 
   // Write host file
   fs.writeFileSync(hostFilePath, JSON.stringify(host, null, 4), "utf8");
@@ -123,8 +124,8 @@ yargs.command<{}>("start", "Start server", () => {
   host.security = {
     cert: `/etc/letsencrypt/live/${argv.domain}/cert.pem`,
     key: `/etc/letsencrypt/live/${argv.domain}/privkey.pem`,
-    ca: `/etc/letsencrypt/live/${argv.domain}/chain.pem`
-  }
+    ca: `/etc/letsencrypt/live/${argv.domain}/chain.pem`,
+  };
 
   // Sets to auto redirect to https
   host.redirectToHttps = true;

@@ -1,11 +1,11 @@
 import * as fs from "fs";
-import * as path from "path";
 import * as os from "os";
+import * as path from "path";
 import { ServiceModule } from "../modules/service.module";
 
 export type onCallback = (config?: IConfig) => void;
-export type onCallbackStore = { verb: string, callback: onCallback };
-export type onReturn = { unsubscribe: () => void };
+export interface IOnCallbackStore { verb: string; callback: onCallback; }
+export interface IOnReturn { unsubscribe: () => void; }
 
 const CONFIG_PATH = path.resolve("./ssme.config.json");
 
@@ -23,12 +23,14 @@ export const defaultConfig: IConfig = {
   logOutputConsole: false,
   logDumpPath: path.resolve(os.homedir(), ".ssme/log"),
   hostsPath: path.resolve(os.homedir(), ".ssme/hosts"),
-}
+};
 
 export class ConfigService extends ServiceModule {
-  private _attributes: IConfig = defaultConfig;
 
   public get attributes(): IConfig { return this._attributes; }
+  private _attributes: IConfig = defaultConfig;
+
+  private _ons: IOnCallbackStore[] = [];
 
   public constructor() {
     super();
@@ -39,17 +41,15 @@ export class ConfigService extends ServiceModule {
     // Initiate watcher
     this.watcher();
   }
-
-  private _ons: onCallbackStore[] = [];
-  public on(verb: "reload", callback: onCallback): onReturn {
+  public on(verb: "reload", callback: onCallback): IOnReturn {
     this._ons.push({ verb, callback });
 
     return {
       unsubscribe: () => {
-        const callbackStoreIndex = this._ons.findIndex((callbackStore: onCallbackStore) => callback === callbackStore.callback);
+        const callbackStoreIndex = this._ons.findIndex((callbackStore: IOnCallbackStore) => callback === callbackStore.callback);
         if (callbackStoreIndex !== -1) { this._ons.splice(callbackStoreIndex, 1); }
-      }
-    }
+      },
+    };
   }
 
   private watcher() {
@@ -62,14 +62,16 @@ export class ConfigService extends ServiceModule {
     if (fs.existsSync(CONFIG_PATH)) {
       try {
         this._attributes = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
-      } catch (error) { }
+      } catch (error) {
+        //
+      }
       this.reloading();
       return;
     }
   }
 
   private reloading(): void {
-    this._ons.filter((value: onCallbackStore) => value.verb === "reload").forEach((value: onCallbackStore) => value.callback(this._attributes));
+    this._ons.filter((value: IOnCallbackStore) => value.verb === "reload").forEach((value: IOnCallbackStore) => value.callback(this._attributes));
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "simplyserveme",
-  "version": "3.2.1",
+  "version": "4.0.0",
   "main": "build/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",
@@ -11,7 +11,10 @@
     "watch": "tsc -w",
     "build": "tsc",
     "prepare": "yarn build",
-    "postinstall": "yarn build"
+    "postinstall": "yarn build",
+    "postversion": "git push && git push --tags",
+    "test": "mocha --opts ./mocha.opts",
+    "lint": "tslint -p tsconfig.json"
   },
   "dependencies": {
     "@fidm/x509": "^1.2.1",
@@ -31,6 +34,7 @@
     "ip-range-check": "^0.0.2",
     "mocha": "^6.1.4",
     "ts-node": "^8.1.0",
+    "tslint": "^5.17.0",
     "typescript": "^3.4.5",
     "vhost": "expressjs/vhost#pull/27/head",
     "winston": "^3.2.1",

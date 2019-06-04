@@ -1,9 +1,9 @@
-import * as winston from "winston";
 import { TransformableInfo } from "logform";
+import * as winston from "winston";
 import { helperService } from "../services/helper.service";
 
 export interface ILogMessage { title: string; message?: string; type?: logType; data?: any; }
-export interface ILogArgument { title: string; message?: string; };
+export interface ILogArgument { title: string; message?: string; }
 export enum logType {
   INFO = "info",
   WARNING = "warn",
@@ -15,7 +15,7 @@ export class LogModule {
   public constructor(outputToConsole: boolean = true, path?: string) {
     const format = [
       winston.format.timestamp(),
-      winston.format.printf((info: TransformableInfo) => `${helperService.dateTimeToString(info.timestamp)} - ${info.level}: ${info.message}`)
+      winston.format.printf((info: TransformableInfo) => `${helperService.dateTimeToString(info.timestamp)} - ${info.level}: ${info.message}`),
     ];
     this.logger = winston.createLogger({
       transports: [
@@ -32,44 +32,36 @@ export class LogModule {
           format: winston.format.combine(...[
             winston.format.colorize(),
             ...format,
-          ])
+          ]),
         })] : []),
-      ]
+      ],
     });
   }
 
-  public info(message: string): void
-  public info(log: ILogArgument): void
+  public info(message: string): void;
+  public info(log: ILogArgument): void;
   public info(log: ILogArgument | string): void {
     this.add({ ...this.parseLogArgument(log), ...{ type: logType.INFO } });
   }
 
-  public warning(message: string): void
-  public warning(log: ILogArgument): void
+  public warning(message: string): void;
+  public warning(log: ILogArgument): void;
   public warning(log: ILogArgument | string): void {
     this.add({ ...this.parseLogArgument(log), ...{ type: logType.WARNING } });
   }
 
-  public error(message: string): void
-  public error(log: ILogArgument): void
+  public error(message: string): void;
+  public error(log: ILogArgument): void;
   public error(log: ILogArgument | string): void {
     this.add({ ...this.parseLogArgument(log), ...{ type: logType.ERROR } });
-  }
-
-  private parseLogArgument(info: ILogArgument | string): ILogArgument {
-    if (typeof info === "string") {
-      info = { title: info };
-    }
-
-    return info;
   }
 
   /**
    * Public method to add log message. Will output to console if set to do so
    * @param log Log message
    */
-  public add(log: string): void
-  public add(log: ILogMessage): void
+  public add(log: string): void;
+  public add(log: ILogMessage): void;
   public add(log: ILogMessage | string): void {
     if (typeof log === "string") {
       log = { title: log };
@@ -77,7 +69,7 @@ export class LogModule {
     if (log.type === undefined) { log.type = logType.INFO; }
     this.logger.log({
       level: log.type,
-      message: this.printLogMessage(log)
+      message: this.printLogMessage(log),
     });
   }
 
@@ -88,6 +80,14 @@ export class LogModule {
       });
       this.logger.end();
     });
+  }
+
+  private parseLogArgument(info: ILogArgument | string): ILogArgument {
+    if (typeof info === "string") {
+      info = { title: info };
+    }
+
+    return info;
   }
 
   private printLogMessage(logMessage: ILogMessage): string {

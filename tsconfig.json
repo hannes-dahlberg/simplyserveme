@@ -1,5 +1,11 @@
 {
     "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "*": [
+                "types/*"
+            ]
+        },
         "target": "es5",
         "moduleResolution": "node",
         "emitDecoratorMetadata": true,
@@ -18,8 +24,5 @@
     },
     "include": [
         "src/**/*.ts"
-    ],
-    "exclude": [
-        "src/vue"
     ]
 }

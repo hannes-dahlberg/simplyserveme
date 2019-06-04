@@ -10,6 +10,11 @@
         },
         "no-shadowed-variable": false,
         "no-console": false,
+        "variable-name": {
+            "options": "allow-leading-underscore"
+        },
+        "object-literal-sort-keys": false,
+        "unified-signatures": false
     },
     "rulesDirectory": [],
     "include": [

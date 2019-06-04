@@ -1,33 +1,33 @@
 import * as express from "express";
+import * as fs from "fs";
 import * as httpProxyMiddleware from "http-proxy-middleware";
-import * as vhost from "vhost";
 import * as https from "https";
 import * as net from "net";
-import * as tls from "tls";
-import * as fs from "fs";
 import * as path from "path";
-const ipRangeCheck = require("ip-range-check");
+import * as tls from "tls";
+import * as vhost from "vhost";
+const ipRangeCheck = require("ip-range-check"); // tslint:disable-line:no-var-requires
 
-import { configService, IConfig } from "./config.service";
 import { LogModule, logType } from "../modules/log.module";
 import { ServiceModule } from "../modules/service.module";
+import { configService, IConfig } from "./config.service";
 export { Server } from "../modules/server.module";
 
 export interface IHost {
   domain: string; // Domain
   target: string; // Target address (none https),
   enable: boolean;
-  security?: security;
+  security?: ISecurity;
   redirectToHttps?: boolean;
   letsEncryptAuth?: {
     validation: string,
-    token: string
+    token: string,
   };
   blackListIps?: string[];
   whiteListIps?: string[];
 }
-type security = { key: string, cert: string, ca: string, };
-type certFiles = { [key: string]: security };
+interface ISecurity { key: string; cert: string; ca: string; }
+interface ICertFiles { [key: string]: ISecurity; }
 enum serverState {
   STARTED = "started",
   STARTING = "starting",
@@ -36,6 +36,10 @@ enum serverState {
 }
 
 class ServerService extends ServiceModule {
+
+  private get logPath(): string {
+    return path.resolve(this.configs.logDumpPath, "server.log");
+  }
   private _state: serverState = serverState.STOPPED;
 
   private _servers: net.Server[] = [];
@@ -43,13 +47,9 @@ class ServerService extends ServiceModule {
 
   private hostWatcher: fs.FSWatcher;
 
-  private certFiles: certFiles = {};
+  private certFiles: ICertFiles = {};
   private configs: IConfig = configService.attributes;
-  private log: LogModule = new LogModule(this.configs.logOutputConsole, this.logPath);;
-
-  private get logPath(): string {
-    return path.resolve(this.configs.logDumpPath, "server.log");
-  }
+  private log: LogModule = new LogModule(this.configs.logOutputConsole, this.logPath);
 
   public constructor(
     private app: express.Express = express(),
@@ -60,9 +60,8 @@ class ServerService extends ServiceModule {
     configService.on("reload", () => {
       this.log.add({ title: "Server", message: "Server config changes detected" });
 
-
       if (this.configs.logOutputConsole && !configService.attributes.logOutputConsole) {
-        console.log("Console log was turned of by server config. No more messages will be displayed")
+        console.log("Console log was turned of by server config. No more messages will be displayed");
       }
 
       // Resets configs
@@ -81,7 +80,7 @@ class ServerService extends ServiceModule {
 
       // Setup watcher for watching config file changes
       this.hostWatcher = fs.watch(this.configs.hostsPath, () => {
-        this.log.add({ title: "Hosts", message: "Detecting host file changes. Updating..." })
+        this.log.add({ title: "Hosts", message: "Detecting host file changes. Updating..." });
         this.loadHosts(this.app, this.configs.hostsPath);
       });
 
@@ -104,11 +103,11 @@ class ServerService extends ServiceModule {
           key: "", cert: "", ca: "",
           // Callback for certificate calls
           SNICallback: (domain: string, callback: (error: Error | null, ctx: tls.SecureContext) => void) => {
-            //Depending on domain respond with different certificate
+            // Depending on domain respond with different certificate
             if (this.certFiles[domain] !== undefined) {
               callback(null, tls.createSecureContext(this.certFiles[domain]));
             } else {
-              callback(null, tls.createSecureContext({ cert: "", key: "", ca: "", }));
+              callback(null, tls.createSecureContext({ cert: "", key: "", ca: "" }));
             }
           },
         }, this.app).listen(this.configs.sslPort, () => {
@@ -144,13 +143,32 @@ class ServerService extends ServiceModule {
     });
   }
 
+  public restart() {
+    // Make sure to restart only an actual running server
+    if (this._state !== serverState.STARTED) { return; }
+
+    this.log.add({ title: "Server", message: "Restarting server..." });
+
+    // Call to shutdown server
+    this.log.add({ title: "Server", message: "Stopping server..." });
+    this.stop().then(() => {
+      // After shutdown start server again
+      this.log.add({ title: "Server", message: "Starting server..." });
+      this.start().catch((error: any) => {
+        this.log.add({ title: "Server", message: "Server failed to start", type: logType.ERROR, data: { error } });
+      });
+    }).catch((error: any) => {
+      this.log.add({ title: "Server", message: "Server failed to shutdown", type: logType.ERROR, data: { error } });
+    });
+  }
+
   private endConnections(): Promise<void> {
     return new Promise((resolve, reject) => {
       // Resolve if connection list is empty
       if (this._connections.length === 0) { resolve(); return; }
 
       // End each connection
-      this._connections.forEach(connection => connection.end("", "", () => {
+      this._connections.forEach((connection) => connection.end("", "", () => {
         // Remove connection from array
         this._connections = this._connections = this._connections.filter((connectionRef: net.Socket) => connectionRef !== connection);
         // Check if array is empty, if so resolve
@@ -159,7 +177,7 @@ class ServerService extends ServiceModule {
 
       // Timeout to instead destroy all connections
       setTimeout(() => {
-        this._connections.forEach(connection => connection.destroy());
+        this._connections.forEach((connection) => connection.destroy());
         resolve();
       }, 5000);
     });
@@ -173,7 +191,7 @@ class ServerService extends ServiceModule {
       if (this._servers.length === 0) { resolve(); return; }
 
       // End each server
-      this._servers.forEach(server => server.close(() => {
+      this._servers.forEach((server) => server.close(() => {
         // Remove connection from array
         this._servers = this._servers = this._servers.filter((serverRef: net.Server) => serverRef !== server);
         // Check if array is empty, if so resolve
@@ -194,25 +212,6 @@ class ServerService extends ServiceModule {
         }
       }, 1000);
 
-    })
-  }
-
-  public restart() {
-    // Make sure to restart only an actual running server
-    if (this._state !== serverState.STARTED) { return; }
-
-    this.log.add({ title: "Server", message: "Restarting server..." })
-
-    // Call to shutdown server
-    this.log.add({ title: "Server", message: "Stopping server..." });
-    this.stop().then(() => {
-      // After shutdown start server again
-      this.log.add({ title: "Server", message: "Starting server..." });
-      this.start().catch((error: any) => {
-        this.log.add({ title: "Server", message: "Server failed to start", type: logType.ERROR, data: { error } });
-      });
-    }).catch((error: any) => {
-      this.log.add({ title: "Server", message: "Server failed to shutdown", type: logType.ERROR, data: { error } });
     });
   }
 
@@ -232,15 +231,15 @@ class ServerService extends ServiceModule {
         .map((host: string) => ({
           // Parse each host file and add filename
           ...JSON.parse(fs.readFileSync(path.resolve(hostsPath, host), "utf8")),
-          filename: host
+          filename: host,
         }));
     } catch (error) {
-      this.log.add({ title: "config parse error", message: "Error while parsing host files", type: logType.ERROR, data: error })
+      this.log.add({ title: "config parse error", message: "Error while parsing host files", type: logType.ERROR, data: error });
       return;
     }
 
     // Check host attributes
-    for (let host of hosts) {
+    for (const host of hosts) {
       if (host.domain === undefined || host.target === undefined) {
         this.log.add({ title: "Missing config attributes", message: `missing either domain or target in config "${(host as any).filename}"`, type: logType.WARNING });
       }
@@ -258,14 +257,14 @@ class ServerService extends ServiceModule {
       do {
         vhostIndex = app._router.stack.findIndex((stackItem: any) => stackItem.name === "vhost");
         app._router.stack.splice(vhostIndex, 1);
-      } while (vhostIndex != -1)
+      } while (vhostIndex !== -1);
     }
 
     // Add each host as a vhost app to app server
     try {
       hosts.filter((host: IHost) => host.enable).forEach((host: IHost) => {
         // Create vhost App
-        let vhostApp = express();
+        const vhostApp = express();
 
         // Look for encrypion configs
         if (host.letsEncryptAuth) {
@@ -281,11 +280,11 @@ class ServerService extends ServiceModule {
             key: fs.readFileSync(host.security.key, "utf8"),
             cert: fs.readFileSync(host.security.cert, "utf8"),
             ca: fs.readFileSync(host.security.ca, "utf8"),
-          }
+          };
 
           // Create redirect to https
           if (host.redirectToHttps) {
-            vhostApp.get('*', (request: express.Request, response: express.Response, next: express.NextFunction) => {
+            vhostApp.get("*", (request: express.Request, response: express.Response, next: express.NextFunction) => {
               if (request.protocol === "http") { response.redirect(`https://${request.headers.host}${request.url}`); return; }
               next();
             });

@@ -6,7 +6,8 @@ export class HelperService extends ServiceModule {
   }
   public dateTimeToString(date: Date | string): string {
     if (typeof date === "string") { date = new Date(date); }
-    return `${date.getFullYear()}-${this.padStart(date.getMonth().toString(), 2, "0")}-${this.padStart(date.getDate().toString(), 2, "0")} ${this.padStart(date.getHours().toString(), 2, "0")}:${this.padStart(date.getMinutes().toString(), 2, "0")}:${this.padStart(date.getSeconds().toString(), 2, "0")}`
+    return `${date.getFullYear()}-${this.padStart(date.getMonth().toString(), 2, "0")}-${this.padStart(date.getDate().toString(), 2, "0")}`
+      + ` ${this.padStart(date.getHours().toString(), 2, "0")}:${this.padStart(date.getMinutes().toString(), 2, "0")}:${this.padStart(date.getSeconds().toString(), 2, "0")}`;
   }
 }
 

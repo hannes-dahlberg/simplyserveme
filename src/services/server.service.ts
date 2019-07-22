@@ -1,3 +1,4 @@
+import { ChildProcess, spawn } from "child_process";
 import * as express from "express";
 import * as fs from "fs";
 import * as httpProxyMiddleware from "http-proxy-middleware";
@@ -16,6 +17,7 @@ export { Server } from "../modules/server.module";
 export interface IHost {
   domain: string; // Domain
   target: string; // Target address (none https),
+  exec?: string; // Process to spawn (if any) when setting up proxy
   enable: boolean;
   security?: ISecurity;
   redirectToHttps?: boolean;
@@ -26,6 +28,7 @@ export interface IHost {
   blackListIps?: string[];
   whiteListIps?: string[];
 }
+interface IProcess { id: string; process: ChildProcess; }
 interface ISecurity { key: string; cert: string; ca: string; }
 interface ICertFiles { [key: string]: ISecurity; }
 enum serverState {
@@ -53,10 +56,11 @@ class ServerService extends ServiceModule {
 
   public constructor(
     private app: express.Express = express(),
+    private processes: IProcess[] = [],
   ) {
     super();
 
-    // Whenever configs are reloaded. Restart the server
+    // Whenever server configs are reloaded. Restart the server
     configService.on("reload", () => {
       this.log.add({ title: "Server", message: "Server config changes detected" });
 
@@ -74,6 +78,9 @@ class ServerService extends ServiceModule {
     });
   }
 
+  /**
+   * Start server
+   */
   public start(): Promise<void> {
     return new Promise((resolve, reject) => {
       this._state = serverState.STARTING;
@@ -301,7 +308,28 @@ class ServerService extends ServiceModule {
             next();
           });
         }
+        if (host.exec) {
+          // Sets process ID
+          const id = host.target;
 
+          // Kill and remove process if exists
+          const processIndex = this.processes.findIndex((process: IProcess) => process.id === id);
+          if (processIndex !== -1) {
+            // Kill process
+            this.processes[processIndex].process.kill();
+            // Remove process from array
+            this.processes.splice(processIndex, 1);
+          }
+
+          // Spawns new process
+          const splitExec = host.exec.split(" ");
+          const spawnedProcess = spawn(splitExec[0], splitExec.slice(1));
+
+          // Add process to list of processes
+          this.processes.push({ id: host.target, process: spawnedProcess });
+
+          this.log.add({ title: "Spawn", message: `Spawn process "${host.exec}"` });
+        }
         // If target is web url
         if (!!host.target.match(/^http/)) {
           // Sets up proxy
@@ -316,7 +344,7 @@ class ServerService extends ServiceModule {
             response.sendFile("index.html", { root: staticPath });
           });
 
-          this.log.add({ title: "Serve", message: `Serving static content for ${host.domain} from path: ${staticPath}` });
+          this.log.add({ title: "Serve", message: `Serving static content on ${host.domain} from path: ${staticPath}` });
         }
 
         // Add vhost to app

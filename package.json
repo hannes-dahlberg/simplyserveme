@@ -1,6 +1,6 @@
 {
   "name": "simplyserveme",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "main": "build/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",
@@ -38,6 +38,6 @@
     "typescript": "^3.4.5",
     "vhost": "expressjs/vhost#pull/27/head",
     "winston": "^3.2.1",
-    "yargs": "^13.2.4"
+    "yargs": "^13.3.0"
   }
 }

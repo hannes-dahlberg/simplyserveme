@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from "child_process";
+import { ChildProcess, exec } from "child_process";
 import * as express from "express";
 import * as fs from "fs";
 import * as httpProxyMiddleware from "http-proxy-middleware";
@@ -17,7 +17,7 @@ export { Server } from "../modules/server.module";
 export interface IHost {
   domain: string; // Domain
   target: string; // Target address (none https),
-  exec?: string; // Process to spawn (if any) when setting up proxy
+  exec?: string; // Process to exec (if any) when setting up proxy
   enable: boolean;
   security?: ISecurity;
   redirectToHttps?: boolean;
@@ -321,14 +321,13 @@ class ServerService extends ServiceModule {
             this.processes.splice(processIndex, 1);
           }
 
-          // Spawns new process
-          const splitExec = host.exec.split(" ");
-          const spawnedProcess = spawn(splitExec[0], splitExec.slice(1));
+          // Exec new process
+          const execProcess = exec(host.exec);
 
           // Add process to list of processes
-          this.processes.push({ id: host.target, process: spawnedProcess });
+          this.processes.push({ id: host.target, process: execProcess });
 
-          this.log.add({ title: "Spawn", message: `Spawn process "${host.exec}"` });
+          this.log.add({ title: "Exec", message: `Exec process "${host.exec}"` });
         }
         // If target is web url
         if (!!host.target.match(/^http/)) {

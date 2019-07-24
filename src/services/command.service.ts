@@ -53,17 +53,17 @@ export class CommandService extends ServiceModule {
   }
   public certify(domain: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      childProcess.exec(`certbot certonly
-      --manual
-      -d "${domain}"
-      --manual-public-ip-logging-ok
-      --register-unsafely-without-email
-      --agree-tos
-      --manual-auth-hook "ssme auth"
-      --manual-cleanup-hook "ssme cleanup"
-    --config-dir ${os.homedir()}/.letsencrypt/config
-    --work-dir ${os.homedir()}/.letsencrypt/work
-    --logs-dir ${os.homedir()}/.letsencrypt/logs`, (error: any) => {
+      childProcess.exec(`certbot certonly` +
+        ` --manual` +
+        ` -d "${domain}"` +
+        ` --manual-public-ip-logging-ok` +
+        ` --register-unsafely-without-email` +
+        ` --agree-tos` +
+        ` --manual-auth-hook "ssme auth"` +
+        ` --manual-cleanup-hook "ssme cleanup"` +
+        ` --config-dir ${os.homedir()}/.letsencrypt/config` +
+        ` --work-dir ${os.homedir()}/.letsencrypt/work` +
+        ` --logs-dir ${os.homedir()}/.letsencrypt/logs`, (error: any) => {
           if (error) { reject(error); }
           resolve();
         });

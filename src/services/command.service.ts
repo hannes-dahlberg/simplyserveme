@@ -61,9 +61,9 @@ export class CommandService extends ServiceModule {
       --agree-tos
       --manual-auth-hook "ssme auth"
       --manual-cleanup-hook "ssme cleanup"
-    --config-dir $HOME/.letsencrypt/config
-    --work-dir $HOME/.letsencrypt/work
-    --logs-dir $HOME/.letsencrypt/logs`, (error: any) => {
+    --config-dir ${os.homedir()}/.letsencrypt/config
+    --work-dir ${os.homedir()}/.letsencrypt/work
+    --logs-dir ${os.homedir()}/.letsencrypt/logs`, (error: any) => {
           if (error) { reject(error); }
           resolve();
         });

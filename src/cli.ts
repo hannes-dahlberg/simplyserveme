@@ -29,7 +29,8 @@ const enableDisable = (verb: "enable" | "disable", domain: string) => {
 };
 
 const _ = yargs.command<{}>("start", "Start server", () => {
-  commandService.start().finally(() => {
+  commandService.start().catch((error: any) => {
+    log.add({ type: logType.ERROR, title: "Error when starting server", message: error.message, data: { error } });
     process.exit();
   });
 }).command<{}>("init", "Initiate config file", () => {

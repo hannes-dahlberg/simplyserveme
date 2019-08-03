@@ -1,7 +1,7 @@
 {
   "name": "simplyserveme",
-  "version": "4.2.3",
-  "main": "build/index.js",
+  "version": "4.3.0",
+  "main": "dist/index.js",
   "author": "Hannes Dahlberg <hannes@dwik.se>",
   "license": "MIT",
   "bin": {
@@ -10,8 +10,7 @@
   "scripts": {
     "watch": "tsc -w",
     "build": "tsc",
-    "prepare": "yarn build",
-    "postinstall": "yarn build",
+    "prepublish": "yarn build",
     "postversion": "git push && git push --tags",
     "test": "mocha --opts ./mocha.opts",
     "lint": "tslint -p tsconfig.json"

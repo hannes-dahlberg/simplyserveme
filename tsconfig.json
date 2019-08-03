@@ -13,7 +13,7 @@
         "typeRoots": [
             "./node_modules/@types"
         ],
-        "outDir": "build/",
+        "outDir": "dist/",
         "declaration": true
     },
     "include": [
